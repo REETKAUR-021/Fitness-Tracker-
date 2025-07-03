@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FitGoal App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    body {
+      background: linear-gradient(to right, #e1f5fe, #e0f2f1);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+    .container, .plan-container, .feedback-container, .welcome-container, .login-container, .bmi-container {
+      display: none;
+      background: #ffffff;
+      max-width: 600px;
+      width: 100%;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 1s ease forwards;
+    }
+    .active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    h1, h2, h3 {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #00695c;
+    }
+    label, input, textarea, button {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    input, textarea {
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.75rem;
+      background-color: #00695c;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #004d40;
+    }
+    .section {
+      margin-top: 1.5rem;
+      background-color: #f1f8e9;
+      padding: 1rem;
+      border-radius: 10px;
+    }
+    canvas {
+      margin-top: 1rem;
+      width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="login-container active" id="loginContainer">
+  <h2>Login to FitGoal</h2>
+  <label>Email:</label>
+  <input type="email" id="email" placeholder="Enter your email" />
+  <label>Password:</label>
+  <input type="password" id="password" placeholder="Enter your password" />
+  <button onclick="loginUser()">Login</button>
+  <p id="loginStatus"></p>
+</div>
+
+<!-- WELCOME PAGE -->
+<div class="welcome-container" id="welcomeContainer">
+  <h1>Welcome to FitGoal 🎯</h1>
+  <p style="text-align:center; margin: 1rem 0;">Your personalized fitness & diet assistant</p>
+  <button onclick="goToInput()">Get Started</button>
+</div>
+
+<!-- INPUT PAGE -->
+<div class="container" id="inputContainer">
+  <h2>Enter Your Details</h2>
+  <label for="weight">Weight (kg):</label>
+  <input type="number" id="weight" placeholder="e.g., 65">
+  <label for="height">Height (cm):</label>
+  <input type="number" id="height" placeholder="e.g., 165">
+  <button onclick="showBMI()">Next: Check BMI</button>
+</div>
+
+<!-- BMI PAGE -->
+<div class="container" id="bmiContainer">
+  <h2>Your BMI Result</h2>
+  <canvas id="bmiChart"></canvas>
+  <p id="bmiValue" style="text-align:center; margin-top: 1rem; font-weight: bold;"></p>
+  <button onclick="showFullPlan()">Next: See Plan</button>
+</div>
+
+<!-- PLAN PAGE -->
+<div class="plan-container" id="planContainer">
+  <h2>Your Custom Plan</h2>
+  <div class="section">
+    <h3>Diet Plan</h3>
+    <ul id="diet"></ul>
+  </div>
+  <div class="section">
+    <h3>Workout Plan</h3>
+    <p id="workout"></p>
+  </div>
+  <div class="section">
+    <h3>Weekly Schedule</h3>
+    <ul id="schedule"></ul>
+  </div>
+  <canvas id="calorieChart"></canvas>
+  <button onclick="goToFeedback()">Next: Feedback</button>
+</div>
+
+<!-- FEEDBACK PAGE -->
+<div class="feedback-container" id="feedbackContainer">
+  <h2>We Value Your Feedback</h2>
+  <label>Share your journey:</label>
+  <textarea id="feedback" placeholder="How's your progress?"></textarea>
+  <button onclick="submitFeedback()">Submit</button>
+  <p id="feedback-status"></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  function loginUser() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const status = document.getElementById("loginStatus");
+
+    if (!email || !password) {
+      status.textContent = "Please fill in both fields.";
+      status.style.color = "red";
+      return;
+    }
+
+    localStorage.setItem("fitUser", JSON.stringify({ email }));
+    status.textContent = "Login successful! Redirecting...";
+    status.style.color = "green";
+
+    setTimeout(() => {
+      document.getElementById("loginContainer").classList.remove("active");
+      document.getElementById("welcomeContainer").classList.add("active");
+    }, 1000);
+  }
+
+  function goToInput() {
+    document.getElementById("welcomeContainer").classList.remove("active");
+    document.getElementById("inputContainer").classList.add("active");
+  }
+
+  function showBMI() {
+    const weight = parseFloat(document.getElementById("weight").value);
+    const height = parseFloat(document.getElementById("height").value);
+
+    if (!weight || !height || height === 0) {
+      alert("Enter valid weight and height.");
+      return;
+    }
+
+    localStorage.setItem("userInput", JSON.stringify({ weight, height }));
+    const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
+
+    document.getElementById("inputContainer").classList.remove("active");
+    document.getElementById("bmiContainer").classList.add("active");
+    document.getElementById("bmiValue").textContent = `Your BMI is ${bmi}`;
+
+    renderBmiChart(weight, height);
+  }
+
+  function showFullPlan() {
+    const { weight, height } = JSON.parse(localStorage.getItem("userInput"));
+    const diet = document.getElementById("diet");
+    const workout = document.getElementById("workout");
+    const schedule = document.getElementById("schedule");
+
+    let plan = { diet: [], workout: "", schedule: [] };
+
+    if (weight < 50) {
+      plan.diet = ["Banana shake", "Paneer + rice", "Dry fruits + milk", "Daliya", "Warm milk"];
+      plan.workout = "Yoga and strength training 3x/week.";
+      plan.schedule = ["Mon: Full Body", "Tue: Rest", "Wed: Core", "Thu: Walk", "Fri: Arms", "Sat: Light cardio", "Sun: Stretch"];
+    } else if (weight <= 70) {
+      plan.diet = ["Oats + fruits", "Chapati + dal", "Fruits/nuts", "Soup + veggies", "8-10 glasses water"];
+      plan.workout = "Cardio 3x, strength 2x, yoga 1x/week.";
+      plan.schedule = ["Mon: Cardio", "Tue: Legs", "Wed: Arms", "Thu: Yoga", "Fri: Core", "Sat: Rest", "Sun: Walk"];
+    } else {
+      plan.diet = ["Green tea + eggs", "Veggies + brown rice", "Sprouts + fruits", "Soup + salad", "Avoid sugar/fried"];
+      plan.workout = "HIIT + walk daily, weights 2x/week.";
+      plan.schedule = ["Mon: HIIT", "Tue: Weights", "Wed: Walk", "Thu: Rest", "Fri: HIIT", "Sat: Cardio", "Sun: Yoga"];
+    }
+
+    diet.innerHTML = plan.diet.map(item => `<li>${item}</li>`).join('');
+    workout.textContent = plan.workout;
+    schedule.innerHTML = plan.schedule.map(day => `<li>${day}</li>`).join('');
+
+    document.getElementById("bmiContainer").classList.remove("active");
+    document.getElementById("planContainer").classList.add("active");
+
+    renderCalorieChart();
+  }
+
+  function renderBmiChart(weight, height) {
+    const bmi = weight / ((height / 100) ** 2);
+    new Chart(document.getElementById("bmiChart").getContext("2d"), {
+      type: 'bar',
+      data: {
+        labels: ["Underweight", "Normal", "Overweight", "Obese", "Your BMI"],
+        datasets: [{
+          label: 'BMI Values',
+          data: [18.4, 24.9, 29.9, 34.9, bmi.toFixed(1)],
+          backgroundColor: ['#64b5f6', '#81c784', '#ffb74d', '#e57373', '#3949ab']
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  function renderCalorieChart() {
+    new Chart(document.getElementById("calorieChart").getContext("2d"), {
+      type: 'pie',
+      data: {
+        labels: ['Carbs', 'Proteins', 'Fats'],
+        datasets: [{
+          label: 'Macros',
+          data: [50, 30, 20],
+          backgroundColor: ['#ffee58', '#4dd0e1', '#ff8a65']
+        }]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  function goToFeedback() {
+    document.getElementById("planContainer").classList.remove("active");
+    document.getElementById("feedbackContainer").classList.add("active");
+  }
+
+  function submitFeedback() {
+    const feedbackText = document.getElementById("feedback").value.trim();
+    const status = document.getElementById("feedback-status");
+    if (!feedbackText) {
+      status.textContent = "Please enter your feedback.";
+      status.style.color = "red";
+      return;
+    }
+    let feedbacks = JSON.parse(localStorage.getItem("feedbacks") || "[]");
+    feedbacks.push(feedbackText);
+    localStorage.setItem("feedbacks", JSON.stringify(feedbacks));
+    status.textContent = "Thanks for your feedback!";
+    status.style.color = "green";
+    document.getElementById("feedback").value = "";
+  }
+</script>
+
+</body>
+</html>
